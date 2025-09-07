@@ -21,6 +21,7 @@ export default function Home() {
   const [owner, setOwner] = useState('');
   const [repo, setRepo] = useState('');
   const [branch, setBranch] = useState('');
+  const [githubUrl, setGithubUrl] = useState('');
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
   const [files, setFiles] = useState<string[]>([]);
@@ -29,10 +30,66 @@ export default function Home() {
   const [fileContent, setFileContent] = useState('');
   const [loadingFile, setLoadingFile] = useState(false);
 
+  const parseGithubUrl = (url: string): { owner: string; repo: string; branch?: string } | null => {
+    try {
+      // Remove trailing slashes and normalize
+      const cleanUrl = url.trim().replace(/\/$/, '');
+      
+      // Support various GitHub URL formats
+      const patterns = [
+        // https://github.com/owner/repo
+        /^https?:\/\/github\.com\/([^\/]+)\/([^\/]+)(?:\/tree\/([^\/]+))?/,
+        // github.com/owner/repo (without protocol)
+        /^(?:www\.)?github\.com\/([^\/]+)\/([^\/]+)(?:\/tree\/([^\/]+))?/,
+        // Just owner/repo
+        /^([^\/\s]+)\/([^\/\s]+)$/
+      ];
+
+      for (const pattern of patterns) {
+        const match = cleanUrl.match(pattern);
+        if (match) {
+          const [, owner, repo, branch] = match;
+          // Clean up repo name (remove .git suffix if present)
+          const cleanRepo = repo.replace(/\.git$/, '');
+          return { owner, repo: cleanRepo, branch };
+        }
+      }
+      return null;
+    } catch {
+      return null;
+    }
+  };
+
+  const handleUrlChange = (url: string) => {
+    setGithubUrl(url);
+    const parsed = parseGithubUrl(url);
+    if (parsed) {
+      setOwner(parsed.owner);
+      setRepo(parsed.repo);
+      if (parsed.branch) {
+        setBranch(parsed.branch);
+      }
+      setError('');
+    }
+  };
+
   const loadFiles = async () => {
     if (!owner.trim() || !repo.trim()) {
-      setError('Please enter both owner and repository name');
-      return;
+      if (githubUrl.trim()) {
+        const parsed = parseGithubUrl(githubUrl);
+        if (!parsed) {
+          setError('Please enter a valid GitHub repository URL (e.g., https://github.com/vercel/next.js)');
+          return;
+        }
+        setOwner(parsed.owner);
+        setRepo(parsed.repo);
+        if (parsed.branch) {
+          setBranch(parsed.branch);
+        }
+      } else {
+        setError('Please enter a GitHub repository URL or owner/repository details');
+        return;
+      }
     }
 
     setLoading(true);
@@ -115,63 +172,109 @@ export default function Home() {
         <h1 style={{ margin: '0 0 16px 0', fontSize: '24px', fontWeight: 'bold' }}>
           Markdown Viewer
         </h1>
-        <div style={{ display: 'flex', gap: '12px', alignItems: 'center', flexWrap: 'wrap' }}>
-          <input
-            type="text"
-            placeholder="Owner (e.g., vercel)"
-            value={owner}
-            onChange={(e) => setOwner(e.target.value)}
-            style={{
-              padding: '8px 12px',
-              border: '1px solid #ccc',
-              borderRadius: '4px',
-              fontSize: '14px',
-              minWidth: '150px'
-            }}
-          />
-          <input
-            type="text"
-            placeholder="Repository (e.g., next.js)"
-            value={repo}
-            onChange={(e) => setRepo(e.target.value)}
-            style={{
-              padding: '8px 12px',
-              border: '1px solid #ccc',
-              borderRadius: '4px',
-              fontSize: '14px',
-              minWidth: '150px'
-            }}
-          />
-          <input
-            type="text"
-            placeholder="Branch (optional)"
-            value={branch}
-            onChange={(e) => setBranch(e.target.value)}
-            style={{
-              padding: '8px 12px',
-              border: '1px solid #ccc',
-              borderRadius: '4px',
-              fontSize: '14px',
-              minWidth: '120px'
-            }}
-          />
-          <button
-            onClick={loadFiles}
-            disabled={loading}
-            style={{
-              padding: '8px 16px',
-              backgroundColor: loading ? '#ccc' : '#007bff',
-              color: 'white',
-              border: 'none',
-              borderRadius: '4px',
-              fontSize: '14px',
-              cursor: loading ? 'not-allowed' : 'pointer',
-              fontWeight: '500'
-            }}
-          >
-            {loading ? 'Loading...' : 'Load Files'}
-          </button>
+        {/* GitHub URL Input */}
+        <div style={{ marginBottom: '16px' }}>
+          <label style={{ 
+            display: 'block', 
+            marginBottom: '6px', 
+            fontSize: '14px', 
+            fontWeight: '500',
+            color: '#333'
+          }}>
+            GitHub Repository URL
+          </label>
+          <div style={{ display: 'flex', gap: '12px', alignItems: 'center', flexWrap: 'wrap' }}>
+            <input
+              type="text"
+              placeholder="https://github.com/vercel/next.js or vercel/next.js"
+              value={githubUrl}
+              onChange={(e) => handleUrlChange(e.target.value)}
+              style={{
+                padding: '8px 12px',
+                border: '1px solid #ccc',
+                borderRadius: '4px',
+                fontSize: '14px',
+                minWidth: '400px',
+                flex: 1
+              }}
+            />
+            <button
+              onClick={loadFiles}
+              disabled={loading}
+              style={{
+                padding: '8px 16px',
+                backgroundColor: loading ? '#ccc' : '#007bff',
+                color: 'white',
+                border: 'none',
+                borderRadius: '4px',
+                fontSize: '14px',
+                cursor: loading ? 'not-allowed' : 'pointer',
+                fontWeight: '500'
+              }}
+            >
+              {loading ? 'Loading...' : 'Load Files'}
+            </button>
+          </div>
         </div>
+
+        {/* Manual Input Fields */}
+        <details style={{ marginTop: '12px' }}>
+          <summary style={{ 
+            cursor: 'pointer', 
+            fontSize: '14px', 
+            color: '#666',
+            marginBottom: '8px'
+          }}>
+            Or enter details manually
+          </summary>
+          <div style={{ display: 'flex', gap: '12px', alignItems: 'center', flexWrap: 'wrap', marginTop: '8px' }}>
+            <input
+              type="text"
+              placeholder="Owner (e.g., vercel)"
+              value={owner}
+              onChange={(e) => {
+                setOwner(e.target.value);
+                setGithubUrl(''); // Clear URL when manually editing
+              }}
+              style={{
+                padding: '8px 12px',
+                border: '1px solid #ccc',
+                borderRadius: '4px',
+                fontSize: '14px',
+                minWidth: '150px'
+              }}
+            />
+            <input
+              type="text"
+              placeholder="Repository (e.g., next.js)"
+              value={repo}
+              onChange={(e) => {
+                setRepo(e.target.value);
+                setGithubUrl(''); // Clear URL when manually editing
+              }}
+              style={{
+                padding: '8px 12px',
+                border: '1px solid #ccc',
+                borderRadius: '4px',
+                fontSize: '14px',
+                minWidth: '150px'
+              }}
+            />
+            <input
+              type="text"
+              placeholder="Branch (optional)"
+              value={branch}
+              onChange={(e) => setBranch(e.target.value)}
+              style={{
+                padding: '8px 12px',
+                border: '1px solid #ccc',
+                borderRadius: '4px',
+                fontSize: '14px',
+                minWidth: '120px'
+              }}
+            />
+          </div>
+        </details>
         {currentBranch && (
           <p style={{ margin: '8px 0 0 0', fontSize: '12px', color: '#666' }}>
             Branch: {currentBranch}
