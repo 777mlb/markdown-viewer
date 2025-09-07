@@ -3,6 +3,7 @@
 import { useState } from 'react';
 import { marked } from 'marked';
 import MarkdownViewer from '@/components/MarkdownViewer';
+import FileTreeView from '@/components/FileTreeView';
 
 interface TreeResponse {
   branch: string;
@@ -195,51 +196,35 @@ export default function Home() {
       <div style={{ display: 'flex', flex: 1, overflow: 'hidden' }}>
         {/* Sidebar */}
         <div style={{ 
-          width: '300px', 
+          width: '320px', 
           borderRight: '1px solid #e0e0e0', 
           backgroundColor: '#f8f9fa',
           overflow: 'auto',
           flexShrink: 0
         }}>
           {files.length > 0 && (
-            <div style={{ padding: '16px' }}>
-              <h3 style={{ margin: '0 0 12px 0', fontSize: '16px', fontWeight: '600' }}>
-                Markdown Files ({files.length})
-              </h3>
-              <div>
-                {files.map((file) => (
-                  <button
-                    key={file}
-                    onClick={() => loadFile(file)}
-                    style={{
-                      display: 'block',
-                      width: '100%',
-                      padding: '8px 12px',
-                      margin: '2px 0',
-                      textAlign: 'left',
-                      border: '1px solid transparent',
-                      borderRadius: '4px',
-                      backgroundColor: selectedFile === file ? '#e3f2fd' : 'transparent',
-                      cursor: 'pointer',
-                      fontSize: '13px',
-                      color: selectedFile === file ? '#1976d2' : '#333',
-                      wordBreak: 'break-word'
-                    }}
-                    onMouseEnter={(e) => {
-                      if (selectedFile !== file) {
-                        e.currentTarget.style.backgroundColor = '#f0f0f0';
-                      }
-                    }}
-                    onMouseLeave={(e) => {
-                      if (selectedFile !== file) {
-                        e.currentTarget.style.backgroundColor = 'transparent';
-                      }
-                    }}
-                  >
-                    {file}
-                  </button>
-                ))}
+            <div>
+              <div style={{ 
+                padding: '12px 16px', 
+                borderBottom: '1px solid #e0e0e0',
+                backgroundColor: '#ffffff'
+              }}>
+                <h3 style={{ margin: '0', fontSize: '14px', fontWeight: '600', color: '#666' }}>
+                  EXPLORER
+                </h3>
+                <div style={{ 
+                  fontSize: '12px', 
+                  color: '#999', 
+                  marginTop: '2px'
+                }}>
+                  {files.length} markdown files
+                </div>
               </div>
+              <FileTreeView 
+                files={files}
+                selectedFile={selectedFile}
+                onFileSelect={loadFile}
+              />
             </div>
           )}
         </div>
