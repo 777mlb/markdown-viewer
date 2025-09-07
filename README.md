@@ -79,9 +79,29 @@ This also increases your rate limit from 60 to 5,000 requests per hour.
 - **API**: GitHub REST API via Octokit
 - **Styling**: Minimal inline styles, no external CSS framework
 
+## Publish edits as a PR (MVP)
+
+You can now create pull requests directly from the editor:
+
+1. **Edit any Markdown file** in the TipTap editor
+2. **Click "Publish (Create PR)"** when you have unsaved changes  
+3. **Optionally customize** the PR title and description using "PR Options"
+4. **A new branch is created** automatically (e.g., `docs/readme-md-20250907-173000`)
+5. **Your changes are committed** and a pull request is opened
+6. **Click the PR link** to view it on GitHub
+
+### Conflict handling
+- If the file changed on GitHub since you loaded it, you'll get a conflict warning
+- Choose to reload the latest version or copy your changes manually
+- The app uses SHA-based optimistic locking for safety
+
+### Requirements
+- Must have `GITHUB_TOKEN` in `.env.local` with `repo` scope
+- Only works with repositories you have write access to
+- Currently supports single-file edits only
+
 ## Limitations
 
-- Only works with public GitHub repositories
-- No authentication or private repo support
-- Changes are local only (no save/commit functionality)
+- Single-file PRs only (no multi-file editing yet)
+- Basic conflict resolution (reload or manual copy)
 - MDX files are not supported (only `.md` and `.markdown`)

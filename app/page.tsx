@@ -1,8 +1,7 @@
 'use client';
 
 import { useState } from 'react';
-import { marked } from 'marked';
-import MarkdownViewer from '@/components/MarkdownViewer';
+import MarkdownEditor from '@/components/MarkdownEditor';
 import FileTreeView from '@/components/FileTreeView';
 
 interface TreeResponse {
@@ -28,7 +27,9 @@ export default function Home() {
   const [currentBranch, setCurrentBranch] = useState('');
   const [selectedFile, setSelectedFile] = useState<string | null>(null);
   const [fileContent, setFileContent] = useState('');
+  const [fileSha, setFileSha] = useState('');
   const [loadingFile, setLoadingFile] = useState(false);
+  const [publishSuccess, setPublishSuccess] = useState<{ prUrl: string; prNumber: number } | null>(null);
 
   const parseGithubUrl = (url: string): { owner: string; repo: string; branch?: string } | null => {
     try {
@@ -131,6 +132,8 @@ export default function Home() {
     setLoadingFile(true);
     setSelectedFile(path);
     setFileContent('');
+    setFileSha('');
+    setPublishSuccess(null);
 
     try {
       const params = new URLSearchParams({ 
@@ -150,13 +153,32 @@ export default function Home() {
       }
 
       const fileData = data as FileResponse;
-      const html = marked.parse(fileData.markdown);
-      setFileContent(html as string);
+      setFileContent(fileData.markdown);
+      setFileSha(fileData.sha);
     } catch (err: any) {
       setError(`Failed to load file: ${err.message}`);
       setFileContent('');
     } finally {
       setLoadingFile(false);
+    }
+  };
+
+  const handlePublishSuccess = (result: { prUrl: string; prNumber: number }) => {
+    setPublishSuccess(result);
+    setError('');
+  };
+
+  const handleConflict = (conflict: { upstreamSha: string; upstreamMarkdown: string }) => {
+    const shouldReload = confirm(
+      'This file has been changed on GitHub since you loaded it. Would you like to reload the latest version? (Your current changes will be lost)'
+    );
+    
+    if (shouldReload) {
+      setFileContent(conflict.upstreamMarkdown);
+      setFileSha(conflict.upstreamSha);
+      setError('');
+    } else {
+      setError('File has conflicts. Please reload to get the latest version, or copy your changes and reload manually.');
     }
   };
 
@@ -333,7 +355,36 @@ export default function Home() {
         </div>
 
         {/* Editor */}
-        <div style={{ flex: 1, padding: '16px', overflow: 'hidden' }}>
+        <div style={{ flex: 1, display: 'flex', flexDirection: 'column', overflow: 'hidden' }}>
+          {/* Success Message */}
+          {publishSuccess && (
+            <div style={{
+              padding: '12px 16px',
+              backgroundColor: '#d4edda',
+              color: '#155724',
+              border: '1px solid #c3e6cb',
+              borderRadius: '0',
+              fontSize: '14px',
+              display: 'flex',
+              alignItems: 'center',
+              gap: '8px'
+            }}>
+              ✅ PR #{publishSuccess.prNumber} created successfully!
+              <a
+                href={publishSuccess.prUrl}
+                target="_blank"
+                rel="noopener noreferrer"
+                style={{
+                  color: '#155724',
+                  textDecoration: 'underline',
+                  fontWeight: '500'
+                }}
+              >
+                View PR →
+              </a>
+            </div>
+          )}
+
           {loadingFile ? (
             <div style={{ 
               display: 'flex', 
@@ -345,8 +396,17 @@ export default function Home() {
             }}>
               Loading file...
             </div>
-          ) : fileContent ? (
-            <MarkdownViewer html={fileContent} />
+          ) : fileContent && selectedFile && fileSha ? (
+            <MarkdownEditor
+              owner={owner}
+              repo={repo}
+              path={selectedFile}
+              baseBranch={currentBranch || undefined}
+              baseSha={fileSha}
+              initialMarkdown={fileContent}
+              onPublishResult={handlePublishSuccess}
+              onConflict={handleConflict}
+            />
           ) : selectedFile ? (
             <div style={{ 
               padding: '20px', 
@@ -366,7 +426,7 @@ export default function Home() {
               color: '#999',
               textAlign: 'center'
             }}>
-              {files.length > 0 ? 'Select a markdown file to view' : 'Load a repository to get started'}
+              {files.length > 0 ? 'Select a markdown file to view and edit' : 'Load a repository to get started'}
             </div>
           )}
         </div>
