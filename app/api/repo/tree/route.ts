@@ -66,17 +66,32 @@ export async function GET(request: NextRequest) {
   } catch (error: any) {
     console.error('Error fetching tree:', error);
     
-    if (error.status === 404) {
+    if (error.status === 401) {
       return NextResponse.json(
-        { error: 'Repository not found or branch does not exist' },
-        { status: 404 }
+        { error: 'Unauthorized or insufficient scope. Check GITHUB_TOKEN.' },
+        { status: 401 }
       );
     }
     
     if (error.status === 403) {
+      // Check if it's a rate limit error
+      if (error.response?.headers?.['x-ratelimit-remaining'] === '0' || 
+          error.message?.includes('rate limit')) {
+        return NextResponse.json(
+          { error: 'Rate limit exceeded. Add or adjust GITHUB_TOKEN.' },
+          { status: 403 }
+        );
+      }
       return NextResponse.json(
-        { error: 'Rate limit exceeded. Consider adding a GITHUB_TOKEN to .env.local' },
+        { error: 'Unauthorized or insufficient scope. Check GITHUB_TOKEN.' },
         { status: 403 }
+      );
+    }
+    
+    if (error.status === 404) {
+      return NextResponse.json(
+        { error: 'Repo or path not found.' },
+        { status: 404 }
       );
     }
 

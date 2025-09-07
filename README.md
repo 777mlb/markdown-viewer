@@ -49,16 +49,27 @@ Try these repositories to test the application:
 - `facebook/react` - Popular repo with good documentation
 - `microsoft/typescript` - Another repo with extensive docs
 
-## API Rate Limits
+## Private Repos via PAT
 
-GitHub's API allows 60 requests per hour for unauthenticated requests. If you hit rate limits:
+To access private repositories:
 
-1. Create a GitHub personal access token at https://github.com/settings/tokens
-2. No scopes are needed for public repositories
-3. Add it to `.env.local` as `GITHUB_TOKEN=your_token_here`
+1. Create `.env.local` with your GitHub token:
+```bash
+cp .env.local.example .env.local
+# Edit .env.local and add your GitHub token
+```
+
+2. Create a classic PAT with `repo` scope at https://github.com/settings/tokens
+3. Add it to `.env.local`: `GITHUB_TOKEN=ghp_your_token_here`
 4. Restart the development server
 
-This increases your rate limit to 5,000 requests per hour.
+This also increases your rate limit from 60 to 5,000 requests per hour.
+
+## API Rate Limits
+
+- **Unauthenticated**: 60 requests per hour for public repositories only
+- **With Token**: 5,000 requests per hour + access to private repositories
+- Check current limits at: `http://localhost:3000/api/github/ratelimit`
 
 ## Architecture
 
